@@ -12,8 +12,9 @@
   glibc,
   gcc,
   libz,
+  curl,
 
-  llvmPackages_19,
+  #llvmPackages_19,
 }:
 
 
@@ -165,9 +166,10 @@ let
     rev = "0ce01e934f95efb6a216a6efa35af1245151c779";
   };
 
-  clang = builtins.fetchTarball {
-    url = "https://commondatastorage.googleapis.com/chromium-browser-clang/linux_x64/clang-llvmorg-19-init-2941-ga0b3dbaf-22.tgz";
-    sha256 = "1q8nbbygnysws1dsiwslpy9drlg4y9qdigli00hmqdczq1zxb7an";
+  clangSource = fetchzip {
+    url = "https://commondatastorage.googleapis.com/chromium-browser-clang/Linux_x64/clang-llvmorg-19-init-2941-ga0b3dbaf-22.tgz";
+    sha256 = "sha256-+gDmBQljy4rRcXB1Gq/3iro/xo4jXawkil7v2OSkdF8=";
+    stripRoot = false;
   };
 
   # TODO add the other dependencies
@@ -193,6 +195,7 @@ stdenv.mkDerivation rec {
     libz
 
     stdenv
+    curl
     # llvmPackages_19.clang
     # llvmPackages_19.libcxx
     # llvmPackages_19.libunwind
@@ -225,7 +228,7 @@ stdenv.mkDerivation rec {
     ln -s ${libexpat} buildtools/expat/src
 
     mkdir -p buildtools/linux64/
-    ln -s ${clang} buildtools/linux64/clang
+    ln -s ${clangSource} buildtools/linux64/clang
 
     ln -s ${llvm-project} buildtools/llvm-project
     ln -s ${android-core} buildtools/android-core
@@ -243,8 +246,6 @@ stdenv.mkDerivation rec {
   '';
 
   buildPhase = ''
-    ls -ahl buildtools/linux64
-    exit 1
     gn gen out/linux --args=is_debug=false
     ninja -C out/linux
   '';
