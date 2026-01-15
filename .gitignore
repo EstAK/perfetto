@@ -48,3 +48,5 @@ mise.toml
 perf.data*
 rfcs
 TAGS
+result
+.direnv

@@ -16,10 +16,12 @@
 import os
 import subprocess
 import sys
+import platform
 
 
 def main():
   devnull = open(os.devnull, 'w')
+  is_nix = "NixOS" in platform.uname().version
   for clang in ('clang', 'clang-3.8', 'clang-3.5', 'clang-8'):
     if subprocess.call(['which', clang], stdout=devnull, stderr=devnull) != 0:
       continue
@@ -29,7 +31,8 @@ def main():
         continue
       libs = line.split('=', 1)[1].split(':')
       for lib in libs:
-        if '/clang/' not in lib or not os.path.isdir(lib + '/lib'):
+        if (not ('/clang/' in lib or (is_nix and 'clang-wrapper' in lib))
+            or not os.path.isdir(lib + '/lib')):
           continue
         print(os.path.abspath(lib))
         print(clang)

@@ -121,7 +121,7 @@ void StartHeapprofdIfStatic() {
     return;
   }
 
-  daemon(/* nochdir= */ 0, /* noclose= */ 1);
+  auto _ = daemon(/* nochdir= */ 0, /* noclose= */ 1);
 
   // On debug builds, we want to turn on crash reporting for heapprofd.
 #if PERFETTO_BUILDFLAG(PERFETTO_STDERR_CRASH_DUMP)

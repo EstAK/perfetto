@@ -28,7 +28,7 @@ import zipfile
 import bz2
 
 from collections import namedtuple
-from platform import system, machine
+from platform import system, machine, uname
 
 
 # The format for the deps below is the following:
@@ -907,7 +907,7 @@ def Main():
     deps += BIGTRACE_DEPS
   if args.rust:
     deps += BUILD_DEPS_RUST
-  deps_updated = False
+  deps_updated =  False 
   nodejs_updated = False
   rustup_updated = False
 
@@ -1037,8 +1037,11 @@ def Main():
       cur_python_interpreter, TEST_DATA_SCRIPT, 'status', '--quiet',
       '--ignore-new'
   ])
+
+
   if args.check_only:
-    if not deps_updated and test_data_synced:
+    if ((not deps_updated and test_data_synced)
+        or "NixOS" in uname().version):
       with open(args.check_only, 'w') as f:
         f.write('OK')  # The content is irrelevant, just keep GN happy.
       return 0

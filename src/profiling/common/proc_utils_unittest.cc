@@ -112,7 +112,7 @@ TEST(ProcUtilsTest, FindProfilablePids) {
       close(pipefds[1]);
       char buf[1];
       // Block until the other end shuts down the pipe.
-      read(pipefds[0], buf, sizeof(buf));
+      auto _ = read(pipefds[0], buf, sizeof(buf));
       exit(0);
     }
     default:
