@@ -3,44 +3,38 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
 
-    flake-utils.lib.eachDefaultSystem (system : 
-      let 
-        pkgs = import nixpkgs { inherit system; };
-        fhs = pkgs.buildFHSEnv {
-          name = "fhs-shell";
-          targetPkgs = pkgs: with pkgs; [
-            glibc
-            glibc.dev
-            gcc.cc
-            python3
-            ninja
-            gn
-            libz
+  outputs = { self, nixpkgs, ... }:
 
-            stdenv
-            llvmPackages_19.clang
-            llvmPackages_19.libcxx
-            llvmPackages_19.libunwind
-          ];
-        };
+    let 
+      eachSystem = nixpkgs.lib.genAttrs [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
+    in {
 
-        packages.perfetto = pkgs.callPackage ./default.nix {};
-      in {
+      packages = eachSystem (system : 
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in {
+          perfetto = pkgs.callPackage ./default.nix {}; # handle cross-compilation later on
+          default = self.packages.${system}.perfetto;
+        });
 
-        packages.default = packages.perfetto;
-        devShells.default = fhs.env;
-        # devShells.default = pkgs.mkShell {
-        #   packages = with pkgs; [
-        #     # gcc
-
-        #   ];
-        #   # C_INCLUDE_PATH="${pkgs.libbpf}/include:${pkgs.linuxHeaders}/include:$C_INCLUDE_PATH";
-        # };
-      }
-    );
+      devShells = eachSystem ( system :
+        let
+          pkgs = import nixpkgs { inherit system; };
+          # Define the raw store path
+        in {
+          default = pkgs.mkShell {
+            inputsFrom = [
+              self.packages.${system}.perfetto
+            ];
+          };
+        });
+    };
 }

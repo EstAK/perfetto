@@ -9,12 +9,15 @@
   gn,
   rsync,
   ninja,
-  glibc,
+  #glibc,
   gcc,
   libz,
   curl,
 
-  #llvmPackages_19,
+  patchelf,
+  libcxx,
+  llvmPackages_20,
+  which,
 }:
 
 
@@ -182,23 +185,35 @@ stdenv.mkDerivation rec {
 
   unpackPhase = "true";
 
+
+  # rpath =
+  #   lib.makeLibraryPath [
+  #     glibc
+  #     glibc.dev
+  #     gcc.cc
+  #     libz
+  #     stdenv.cc.cc
+  #   ]
+  #   + ":${lib.getLib stdenv.cc.cc}/lib64";
+
   nativeBuildInputs = [
     git
     python3
     gn
     rsync
     ninja
+    patchelf
+    which
 
-    glibc
-    glibc.dev
-    gcc.cc
     libz
-
-    stdenv
-    curl
-    # llvmPackages_19.clang
-    # llvmPackages_19.libcxx
-    # llvmPackages_19.libunwind
+    #glibc.dev
+    #libcxx
+    
+    gcc
+    llvmPackages_20.clang
+    llvmPackages_20.libcxx
+    llvmPackages_20.libcxxClang
+    llvmPackages_20.libunwind
   ];
   meta = with lib; {
     description = "Production-grade client-side tracing, profiling, and analysis for complex software systems.";
@@ -206,7 +221,6 @@ stdenv.mkDerivation rec {
     platforms = platforms.unix;
   };
 
-    # rsync -a $src/ $TMP/
   configurePhase = ''
     rsync -a $src/ $TMP/
     chmod -R 777  $TMP
@@ -228,7 +242,12 @@ stdenv.mkDerivation rec {
     ln -s ${libexpat} buildtools/expat/src
 
     mkdir -p buildtools/linux64/
-    ln -s ${clangSource} buildtools/linux64/clang
+    rsync -a ${clangSource}/ buildtools/linux64/clang/
+    chmod -R 777 buildtools/linux64/clang/
+    patchelf                                                        \
+      --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
+      --set-rpath ${libz}/lib \
+      buildtools/linux64/clang/bin/clang
 
     ln -s ${llvm-project} buildtools/llvm-project
     ln -s ${android-core} buildtools/android-core
@@ -246,7 +265,15 @@ stdenv.mkDerivation rec {
   '';
 
   buildPhase = ''
-    gn gen out/linux --args=is_debug=false
+    gn gen out/linux --args="
+      is_debug=false
+      is_hermetic_clang=false
+    "
     ninja -C out/linux
+  '';
+
+  installPhase=''
+    mkdir -p $out/bin
+    cp -r out/linux $out/bin
   '';
 }
